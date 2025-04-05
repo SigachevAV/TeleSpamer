@@ -2,6 +2,7 @@
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
+using TeleSpamer.CommandHandlers;
 using TeleSpamer.model;
 
 namespace TeleSpamer
@@ -9,14 +10,26 @@ namespace TeleSpamer
     internal class TelegramHandler
     {
         const string START_COMMAND = "/start";
+        const string HELP_COMMAND = "/help";
+        const string NEW_COMMAND = "/new";
+        const string REMOVE_COMMAND = "/remove";
+
+
+        private Dictionary<string, SlashCommandHandler> handlers = new Dictionary<string, SlashCommandHandler>();
 
         private TelegramBotClient client;
         private DataDbContext dataContext;
         private Task spammer;
-        public TelegramHandler(string _token, DataDbContext _dataDbContext) 
+        public TelegramHandler(string _token, DataDbContext _dataDbContext, string adminUsername) 
         {
             this.client = new TelegramBotClient(_token);
-            this.dataContext = _dataDbContext; 
+            this.dataContext = _dataDbContext;
+
+            this.handlers.Add(HELP_COMMAND, new HelpSlashCommand(client, dataContext));
+            this.handlers.Add(START_COMMAND, new StartSlashCommand(client, dataContext));
+            this.handlers.Add(NEW_COMMAND, new AdminAcssesedSlashCommand(new NewSlashCommand(client, dataContext), adminUsername));
+            this.handlers.Add(REMOVE_COMMAND, new AdminAcssesedSlashCommand(new RemoveSlashCommand(client, dataContext), adminUsername));
+
         }
 
         public void Start()
@@ -30,13 +43,14 @@ namespace TeleSpamer
             while (true)
             {
                 List<TelegramNotification> messages = dataContext.telegramNotifications
-                    .Where(i => i.day == new DateOnly().Day)
+                    .Where(i => i.day == DateTime.Now.Day)
                     .ToList();
                 foreach (TelegramNotification notification in messages) 
                 {
-                    client.SendMessage(notification.Username, notification.message);
+                    client.SendMessage(notification.telegramUser.chatId, notification.message);
                 }
-                Thread.Sleep(24 * 60 * 60 * 1000);
+                //Thread.Sleep(24 * 60 * 60 * 1000);
+                Thread.Sleep(5000);
             }
 
         }
@@ -59,99 +73,26 @@ namespace TeleSpamer
             switch (_command)
             {
                 case START_COMMAND:
+                case HELP_COMMAND:
+                case NEW_COMMAND:
+                case REMOVE_COMMAND:
                 {
-                    Chat chat = _message.Chat;
-                    if(dataContext.telegramUsers.Find(chat.Username) == null)
-                    {
-                        TelegramUser telegramUser = new model.TelegramUser { chatId = chat.Id, Username = chat.Username };
-                        dataContext.Add(telegramUser);
-                        Console.WriteLine(telegramUser);
-                    }
-                    break;
-                }
-                case "/help":
-                {
-                    client.SendMessage(_message.Chat.Id, "Kind of helpfull");
-                    break;
-                }
-                case "/new":
-                {
-                    TelegramNotification notification;
                     try
                     {
-                        notification = GetTelegramNotification(_message);
-                    }
-                    catch (ValidationException ex)
+                        handlers[_command].Handle(_message);
+                    } catch (ForbidenException e)
                     {
-                        Console.WriteLine(ex.Message);
-                        client.SendMessage(_message.Chat.Id, ex.Message);
-                        break;
+                        client.SendMessage(_message.Chat.Id, e.Message);
                     }
-                    if (dataContext.telegramUsers.Find(notification.Username) == null)
-                    {
-                        client.SendMessage(_message.Chat.Id, "UnknownUser");
-                        break;
-                    }
-
-
-                    if (dataContext.telegramNotifications.Find(notification.Username) == null)
-                    {
-                        dataContext.telegramNotifications.Add(notification);
-                    }
-                    else
-                    {
-                        TelegramNotification updating = dataContext.telegramNotifications.Find(notification.Username);
-                        updating.day = notification.day;
-                        updating.message = notification.message;
-                    }
-
-                    Console.WriteLine(notification);
+                    break;
+                }
+                default:
+                {
+                    client.SendMessage(_message.Chat.Id, "Unknown Command");
                     break;
                 }
             }
-            dataContext.SaveChanges();
         }
 
-        private TelegramNotification GetTelegramNotification(Message _message)
-        {
-            TelegramNotification telegramNotification = new TelegramNotification();
-            try
-            {
-                telegramNotification.Username = Regex.Match(_message.Text, "@[a-zA-Z0-9]*").Value.Substring(1);
-            }
-            catch (Exception e) 
-            {
-                throw new ValidationException("invalid Username");
-            }
-
-            try
-            {
-                int day = int.Parse(Regex.Match(_message.Text, "d=\\d{1,2}").Value.Substring(2));
-                if (day < 1 || day > 28) 
-                {
-                    throw new ValidationException("Дата должны быть между 1 и 29");
-                }
-                telegramNotification.day = day;
-            }
-            catch (ValidationException e)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                throw new ValidationException("invalid Date");
-            }
-
-            try
-            {
-                telegramNotification.message = Regex.Match(_message.Text, "m=.*").Value;
-            }
-            catch (Exception e)
-            {
-                throw new ValidationException("invalid Message");
-            }
-
-            return telegramNotification;
-        }
     }
 }

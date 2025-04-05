@@ -1,9 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TeleSpamer.model;
 
 namespace TeleSpamer
@@ -20,8 +15,8 @@ namespace TeleSpamer
         {
             var folder = Environment.SpecialFolder.LocalApplicationData;
             var path = Environment.GetFolderPath(folder);
+            Console.WriteLine("database Path " + path);
             DbPath = System.IO.Path.Join(path, "TeleSpamer.db");
-            
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -31,7 +26,7 @@ namespace TeleSpamer
 
         public void init()
         {
-            Database.EnsureDeleted();
+            //Database.EnsureDeleted();
             Database.EnsureCreated();
         }
     }
