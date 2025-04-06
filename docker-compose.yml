@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  telespamer:
+    image: 'telespamer:latest'
+    build:
+      context: .
+    container_name: TeleSpamer
+    environment: 
+      - ADMIN=
+      - TELEGRAM_TOKEN=
+    volumes:
+      - sqlite:/root/.local/share
+    restart: unless-stopped
+volumes:
+  sqlite:

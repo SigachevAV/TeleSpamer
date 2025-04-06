@@ -56,7 +56,7 @@ namespace TeleSpamer
                     List<TelegramNotification> messages = syncRepository.GetNotificationsForToday();
                     foreach (TelegramNotification notification in messages)
                     {
-                        client.SendMessage(notification.telegramUser.chatId, notification.message);
+                        client.SendMessage(syncRepository.FindUser(notification.Username).chatId, notification.message);
                     }
                     Thread.Sleep(24 * 60 * 60 * 1000);
                     //Thread.Sleep(5000);
