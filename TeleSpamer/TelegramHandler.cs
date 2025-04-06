@@ -13,23 +13,26 @@ namespace TeleSpamer
         const string HELP_COMMAND = "/help";
         const string NEW_COMMAND = "/new";
         const string REMOVE_COMMAND = "/remove";
+        const string LIST_COMMAND = "/list";
 
 
         private Dictionary<string, SlashCommandHandler> handlers = new Dictionary<string, SlashCommandHandler>();
 
         private TelegramBotClient client;
         private DataDbContext dataContext;
+        private SyncRepository syncRepository;
         private Task spammer;
         public TelegramHandler(string _token, DataDbContext _dataDbContext, string adminUsername) 
         {
             this.client = new TelegramBotClient(_token);
             this.dataContext = _dataDbContext;
+            this.syncRepository = new SyncRepository(_dataDbContext);
 
-            this.handlers.Add(HELP_COMMAND, new HelpSlashCommand(client, dataContext));
-            this.handlers.Add(START_COMMAND, new StartSlashCommand(client, dataContext));
-            this.handlers.Add(NEW_COMMAND, new AdminAcssesedSlashCommand(new NewSlashCommand(client, dataContext), adminUsername));
-            this.handlers.Add(REMOVE_COMMAND, new AdminAcssesedSlashCommand(new RemoveSlashCommand(client, dataContext), adminUsername));
-
+            this.handlers.Add(HELP_COMMAND, new HelpSlashCommand(client, syncRepository));
+            this.handlers.Add(START_COMMAND, new StartSlashCommand(client, syncRepository));
+            this.handlers.Add(NEW_COMMAND, new AdminAcssesedSlashCommand(new NewSlashCommand(client, syncRepository), adminUsername));
+            this.handlers.Add(REMOVE_COMMAND, new AdminAcssesedSlashCommand(new RemoveSlashCommand(client, syncRepository), adminUsername));
+            this.handlers.Add(LIST_COMMAND, new AdminAcssesedSlashCommand(new ListSlashCommand(client, syncRepository), adminUsername));
         }
 
         public void Start()
@@ -42,15 +45,21 @@ namespace TeleSpamer
         {
             while (true)
             {
-                List<TelegramNotification> messages = dataContext.telegramNotifications
-                    .Where(i => i.day == DateTime.Now.Day)
-                    .ToList();
-                foreach (TelegramNotification notification in messages) 
+                try
                 {
-                    client.SendMessage(notification.telegramUser.chatId, notification.message);
+                    List<TelegramNotification> messages = syncRepository.GetNotificationsForToday();
+                    foreach (TelegramNotification notification in messages)
+                    {
+                        client.SendMessage(notification.telegramUser.chatId, notification.message);
+                    }
+                    Thread.Sleep(24 * 60 * 60 * 1000);
+                    //Thread.Sleep(5000);
                 }
-                //Thread.Sleep(24 * 60 * 60 * 1000);
-                Thread.Sleep(5000);
+                catch (Exception ex)
+                { 
+                    Console.WriteLine(ex);
+                    continue;
+                }
             }
 
         }
@@ -76,6 +85,7 @@ namespace TeleSpamer
                 case HELP_COMMAND:
                 case NEW_COMMAND:
                 case REMOVE_COMMAND:
+                case LIST_COMMAND:
                 {
                     try
                     {

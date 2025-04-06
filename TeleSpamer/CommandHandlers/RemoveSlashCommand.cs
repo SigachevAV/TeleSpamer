@@ -12,7 +12,7 @@ namespace TeleSpamer.CommandHandlers
     internal class RemoveSlashCommand : SlashCommandHandler
     {
 
-        public RemoveSlashCommand(ITelegramBotClient _telegramBotClient, DataDbContext _dataDbContext) : base(_telegramBotClient, _dataDbContext)
+        public RemoveSlashCommand(ITelegramBotClient _telegramBotClient, SyncRepository _dataDbContext) : base(_telegramBotClient, _dataDbContext)
         { }
         
         public override void Handle(Message _message)
@@ -27,11 +27,10 @@ namespace TeleSpamer.CommandHandlers
                 botClient.SendMessage(_message.Chat.Id, e.Message);
                 return;
             }
-            dataContext.telegramNotifications
-                .Where(i => i.Username == userName)
-                .ToList()
-                .ForEach(i => dataContext.Remove(i));
-            dataContext.SaveChanges();
+            syncRepository.RemoveNotificationsByUsername(userName);
+            string response = "Notification removed for " + userName;
+            Console.WriteLine(response);
+            botClient.SendMessage(_message.Chat.Id, response);
         }
     }
 }

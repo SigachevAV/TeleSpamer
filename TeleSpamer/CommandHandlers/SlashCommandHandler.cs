@@ -11,12 +11,12 @@ namespace TeleSpamer.CommandHandlers
     internal abstract class SlashCommandHandler
     {
         protected ITelegramBotClient botClient { get; set; }
-        protected DataDbContext dataContext { get; set; }
+        protected SyncRepository syncRepository { get; set; }
 
-        public SlashCommandHandler(ITelegramBotClient _client, DataDbContext _dataDbContext) 
+        public SlashCommandHandler(ITelegramBotClient _client, SyncRepository _dataDbContext) 
         { 
             botClient = _client;
-            dataContext = _dataDbContext;
+            syncRepository = _dataDbContext;
         }
 
         protected SlashCommandHandler()

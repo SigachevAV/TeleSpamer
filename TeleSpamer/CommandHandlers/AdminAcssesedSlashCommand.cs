@@ -19,7 +19,7 @@ namespace TeleSpamer.CommandHandlers
             ADMIN_USERNAME = _adminUsername;
         }
 
-        private AdminAcssesedSlashCommand(ITelegramBotClient _client, DataDbContext _dataDbContext) : base(_client, _dataDbContext)
+        private AdminAcssesedSlashCommand(ITelegramBotClient _client, SyncRepository _dataDbContext) : base(_client, _dataDbContext)
         {
         }
 

@@ -7,7 +7,7 @@ namespace TeleSpamer.CommandHandlers
 {
     internal class NewSlashCommand : SlashCommandHandler
     {
-        public NewSlashCommand(ITelegramBotClient _client, DataDbContext _dataDbContext) : base(_client, _dataDbContext)
+        public NewSlashCommand(ITelegramBotClient _client, SyncRepository _dataDbContext) : base(_client, _dataDbContext)
         {
         }
 
@@ -24,29 +24,20 @@ namespace TeleSpamer.CommandHandlers
                 botClient.SendMessage(_message.Chat.Id, ex.Message);
                 return;
             }
-            if (dataContext.telegramUsers.Find(notification.Username) == null)
+            if (syncRepository.FindUser(notification.Username) == null)
             {
                 botClient.SendMessage(_message.Chat.Id, "UnknownUser");
                 return;
             }
 
+            syncRepository.SaveNotification(notification);
 
-            if (dataContext.telegramNotifications.Find(notification.Username) == null)
-            {
-                dataContext.telegramNotifications.Add(notification);
-            }
-            else
-            {
-                TelegramNotification updating = dataContext.telegramNotifications.Find(notification.Username);
-                updating.day = notification.day;
-                updating.message = notification.message;
-            }
+            botClient.SendMessage(_message.Chat.Id, "Notification Added");
 
             Console.WriteLine(notification);
-            dataContext.SaveChanges();
         }
 
-        private TelegramNotification GetTelegramNotification(Message _message)
+        private static TelegramNotification GetTelegramNotification(Message _message)
         {
             TelegramNotification telegramNotification = new TelegramNotification();
 
@@ -71,7 +62,7 @@ namespace TeleSpamer.CommandHandlers
 
             try
             {
-                telegramNotification.message = Regex.Match(_message.Text, "m=.*").Value.Substring(2);
+                telegramNotification.message = Regex.Match(_message.Text, "m=[\\S\\s]*").Value.Substring(2);
             }
             catch (Exception e)
             {
@@ -80,6 +71,5 @@ namespace TeleSpamer.CommandHandlers
 
             return telegramNotification;
         }
-
     }
 }
