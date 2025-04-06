@@ -26,7 +26,7 @@ namespace TeleSpamer
 
         public void init()
         {
-            Database.EnsureDeleted();
+            //Database.EnsureDeleted();
             Database.EnsureCreated();
         }
     }
