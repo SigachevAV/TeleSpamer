@@ -12,11 +12,16 @@ class Program
             return;
         }
 
+        Console.WriteLine("Username: " + admin);
+        Console.WriteLine("Token: " + telegramToken);
+
+
         DataDbContext db = new DataDbContext();
         db.init();
         TelegramHandler handler = new TelegramHandler(telegramToken, db, admin);
         handler.Start();
-        Console.ReadLine();
+        Console.WriteLine("Started");
+        handler.Await();
         return;
     }
 }

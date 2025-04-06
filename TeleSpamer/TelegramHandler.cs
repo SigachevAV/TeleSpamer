@@ -33,12 +33,18 @@ namespace TeleSpamer
             this.handlers.Add(NEW_COMMAND, new AdminAcssesedSlashCommand(new NewSlashCommand(client, syncRepository), adminUsername));
             this.handlers.Add(REMOVE_COMMAND, new AdminAcssesedSlashCommand(new RemoveSlashCommand(client, syncRepository), adminUsername));
             this.handlers.Add(LIST_COMMAND, new AdminAcssesedSlashCommand(new ListSlashCommand(client, syncRepository), adminUsername));
+            Console.WriteLine("HandlerConfigured");
         }
 
         public void Start()
         {
             client.StartReceiving(MessageHandler, ErrorHandler);
             spammer = Task.Run(Spam);
+        }
+
+        public void Await()
+        {
+            spammer.Wait();
         }
 
         private void Spam()
